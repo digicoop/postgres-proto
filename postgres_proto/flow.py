@@ -10,7 +10,6 @@ EXPECTED_PARAMETERS_STATUS = {
     "server_version": "130000", # v13
     "server_encoding": "UTF8",
     "client_encoding": "UTF8",
-    "application_name": "kantree",
     "is_superuser": "off",
     "session_authorization": "off",
     "DateStyle": "ISO, MDY",
@@ -56,6 +55,8 @@ def pgcommand(name):
 
 
 class PostgresServerFlowMixin(object):
+    application_name = 'postgres-proto'
+
     def perform_session_init(self):
         version, startup_params = self.perform_startup_flow()
         user = self.perform_authentication_flow(startup_params)
@@ -106,6 +107,7 @@ class PostgresServerFlowMixin(object):
 
     def send_parameters_status(self):
         self.stream.send_parameters_status(EXPECTED_PARAMETERS_STATUS)
+        self.stream.send_parameters_status({'application_name': self.application_name})
 
     def get_supported_commands(self):
         return {getattr(self, f).__pgcommand__: getattr(self, f) for f in dir(self) if hasattr(getattr(self, f), '__pgcommand__')}

@@ -27,8 +27,8 @@ from postgres_proto.flow import PostgresError
 DATABASE = {'table1': [{'id': 1, 'title': 'hello world'}]}
 
 class MyRequestHandler(PostgresRequestHandler):
-    def query_tables(self, table_names, where_cond):
-        rows = DATABASE.get(next(iter(table_names)), [])
+    def query_tables(self, stmt_info):
+        rows = DATABASE.get(stmt_info.tables[0].name, [])
         return rows, rows[0].keys()
 
     def list_tables(self):
@@ -91,7 +91,7 @@ Your handler will receive the `stmt_info` object.
 from postgres_proto.socket_handler import PostgresRequestHandler, stmt_handler
 
 class MyRequestHandler(PostgresRequestHandler):
-    def query_tables(self, table_names, where_cond):
+    def query_tables(self, stmt_info):
         return [], []
 
     @stmt_handler('INSERT')
