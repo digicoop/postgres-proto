@@ -59,7 +59,7 @@ cli_arg_parser.add_argument('--max-clients', type=int, default=100)
 
 class RequestHandlerArgAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, [import_lib(v) for v in values])
+        setattr(namespace, self.dest, [import_module(v) for v in values])
 
 
 if __name__ == '__main__':

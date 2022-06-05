@@ -65,7 +65,7 @@ Use `PostgresServerFlowMixin` in your own class and override the methods marked 
 You can also override some encryption and authentication methods to add support for those.
 
 `postgres_proto.socket_handler.base.BasePostgresStreamRequestHandler` is a socket request handler that uses `PostgresServerFlowMixin`
-and provide support for SSL. Up to you to override the other protocol flow methods.
+and provides support for SSL. Up to you to override the other protocol flow methods.
 
 `postgres_proto.socket_handler.PostgresRequestHandler` is a ready to use socket request handler where you can focus on handling SQL statements.
 It uses the various utility mixins to support queries about the information schema or specific postgres tables. In most cases you want to
