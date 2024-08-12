@@ -1,42 +1,24 @@
 import re
 
 
+def minify_sql(sql):
+    sql = re.sub("^--.*$", '', sql, flags=re.MULTILINE)
+    sql = re.sub("/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/", '', sql)
+    return sql.replace("\n", " ").replace("\r", " ").strip()
+
+
 def split_sql_queries(sql):
-    return [t[0] for t in tokenize(sql, split_delimiters=(';',))]
+    return [t[0] for t in tokenize_list(sql, ";")]
 
 
-SQL_SPLIT_STMT_TYPES = {
-    'SELECT': ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET'],
-    'INSERT': ['INTO', 'VALUES', 'RETURNING'],
-    'UPDATE': ['UPDATE', 'SET', 'FROM', 'WHERE'],
-    'DELETE': ['FROM', 'WHERE'],
-    'SET': ['SET'],
-    'BEGIN': [],
-    'COMMIT': [],
-    'ROLLBACK': [],
-    'PREPARE': ['PREPARE', 'AS'],
-    'EXECUTE': ['EXECUTE'],
-    'DEALLOCATE': ['DEALLOCATE'],
-    'DISCARD': ['DISCARD'],
-    'CASE': ['WHEN', 'THEN', 'ELSE', 'END']
-}
-
-
-def split_sql(sql, stmt_type_delimiters=None):
-    if stmt_type_delimiters is None:
-        stmt_type_delimiters = SQL_SPLIT_STMT_TYPES
-
-    stmt_type = minify_sql(sql).split(' ', 1)[0].upper()
-    if stmt_type not in stmt_type_delimiters:
-        raise SyntaxError('unsupported SQL statement')
-
+def split_sql(sql, keywords):
     parts = {}
     tokens = tokenize(sql)
     last_part = None
     last_part_pos = 0
     i = 0
     while True:
-        part, pos, i = search_next_token(tokens, stmt_type_delimiters[stmt_type], i)
+        part, pos, i = search_next_token(tokens, keywords, i)
         if last_part:
             value = sql[last_part_pos:pos].strip()
             if last_part in parts:
@@ -49,42 +31,12 @@ def split_sql(sql, stmt_type_delimiters=None):
             break
         last_part = part
         last_part_pos = pos + len(part)
-
-    return stmt_type, parts
-
-
-def minify_sql(sql):
-    sql = re.sub("^--.*$", '', sql, flags=re.MULTILINE)
-    sql = re.sub("/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/", '', sql)
-    return sql.replace("\n", " ").replace("\r", " ").strip()
-
-
-def search_next_token(tokens, search, from_idx=0):
-    i = from_idx
-    while i < len(tokens):
-        token, pos = tokens[i]
-        for lookup in search:
-            if lookup == ' '.join([t[0] for t in tokens[i:i+1+lookup.count(' ')]]).upper():
-                return lookup, pos, i+1
-        i += 1
-    return None, None, i
-
-
-def tokenize_where_expr(where_cond):
-    for expr, pos in tokenize(where_cond, split_delimiters=(' and ', ' or ')):
-        tokens = [t[0] for t in tokenize(expr, split_delimiters=('=', '!=', '<>', '<', '>', '<=', '>='),
-                                            remove_quotes=True, split_delimiters_as_tokens=True)]
-        if len(tokens) != 3:
-            raise SyntaxError(f"unhandled comparison: {expr}")
-        yield tokens
-
-
-def tokenize_comma_separated_list(sql, pos=0, **kwargs):
-    return tokenize(sql, pos, split_delimiters=(',',), **kwargs)
+    return parts
 
 
 def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')'),), string_delimiters=('"', "'"),
-             tokenize_nested=False, remove_quotes=False, split_delimiters_as_tokens=False, in_group=False):
+             tokenize_nested=False, remove_quotes=False, split_delimiters_as_tokens=False, in_group=False,
+             remove_group_delimiters=False):
 
     group_delimiters = dict(group_delimiters)
     open_group_delimiters = tuple(group_delimiters.keys())
@@ -114,9 +66,7 @@ def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')
             if current.strip() or not tokenize_nested:
                 end_pos = find_next_unnested_delim(sql, delim_pos + len(delim), delim, group_delimiters[delim])
                 pos = end_pos + len(delim)
-                tokens.append((sql[delim_pos:pos].strip(), delim_pos))
-                current =''
-                current_pos = pos
+                current += sql[delim_pos+1:pos-1] if remove_group_delimiters else sql[delim_pos:pos]
             else:
                 # nested group
                 group, pos = tokenize(sql, delim_pos + len(delim), split_delimiters, group_delimiters,
@@ -143,6 +93,21 @@ def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')
     return tokens
 
 
+def tokenize_list(sql, separator=",", pos=0, **kwargs):
+    return tokenize(sql, pos, split_delimiters=(separator,), **kwargs)
+
+
+def search_next_token(tokens, search, from_idx=0):
+    i = from_idx
+    while i < len(tokens):
+        token, pos = tokens[i]
+        for lookup in search:
+            if lookup == ' '.join([t[0] for t in tokens[i:i+1+lookup.count(' ')]]).upper():
+                return lookup, pos, i+1
+        i += 1
+    return None, None, i
+
+
 def find_next_delimiter(string, pos, delimiters):
     next_delim = None
     next_delim_pos = len(string)
@@ -167,3 +132,10 @@ def find_next_unnested_delim(string, pos, open_delim, close_delim):
     elif next_close_delim == -1:
         raise SyntaxError(f"missing closing delimiter '{close_delim}'")
     return next_close_delim
+
+
+def unquote(string, string_delimiters=('"', "'")):
+    for delim in string_delimiters:
+        if string.startswith(delim) and string.endswith(delim):
+            return string[1:-1]
+    return string

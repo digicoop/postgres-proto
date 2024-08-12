@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "postgres-proto"
+version = "0.1.0"
+description = "Easily implement the PostgreSQL protocol in Python"
+authors = ["Digicoop <contact@digicoop.io>"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/digicoop/postgres-proto"
+packages = [{include = "postgres_proto"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.1.0"
+ruff = "^0.4.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -18,6 +18,10 @@ Features:
 
 WARNING: This is not a full implementation of the protocol (COPY is notably missing). Howerver, it provides enough to ensure compatibility with many clients.
 
+## Installation
+
+    pip install postgres-proto
+
 ## Example
 
 ```python
@@ -76,8 +80,7 @@ subclass this one as it will ensure compatibility with many existing clients.
 `PostgresRequestHandler` overrides the `execute_query()` method from `PostgresServerFlowMixin` to provide SQL statement handling.
 It integrates with `QueryInformationSchemaMixin` and `QueryPostgresBuiltinsMixin` to make sure these tables are handled properly.
 
-When `execute_query()` is called, the SQL query is parsed using `postgres_proto.sql.parser.parse_sql()` which provides `stmt_type` and `stmt_info`.
-See `parse_sql()` for more details.
+When `execute_query()` is called, the SQL query is parsed using `postgres_proto.sql.parser.Parser` which provides `stmt_type` and `stmt_info`.
 
 After parsing, the handler associated to the statement type will be called.
 

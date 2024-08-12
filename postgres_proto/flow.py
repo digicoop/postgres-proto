@@ -1,7 +1,7 @@
 from io import BytesIO
 import struct
 from contextlib import contextmanager
-from .sql import split_sql_queries
+from .sql.tokenizer import split_sql_queries
 
 
 EXPECTED_PARAMETERS_STATUS = {
@@ -44,7 +44,9 @@ def catch_all_as_postgres_error_context():
     try:
         yield
     except Exception as e:
-        raise PostgresError(str(e))
+        if not isinstance(e, PostgresError):
+            raise PostgresError(str(e))
+        raise
 
 
 def pgcommand(name):

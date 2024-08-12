@@ -7,12 +7,12 @@ import json
 
 
 class WebRequestRequestHandler(PostgresRequestHandler):
-    def query_tables(self, table_names, where_cond):
+    def query_tables(self, stmt_info):
         with catch_all_as_postgres_error_context():
-            url = next(iter(table_names))
-            if where_cond:
+            url = stmt_info.tables[0].name
+            if stmt_info.where:
                 query_params = []
-                for left_expr, op, right_expr in tokenize_where_expr(where_cond):
+                for left_expr, op, right_expr in self.sql_parser.parse_where(stmt_info.where)["$and"]:
                     right_expr = urllib.parse.quote_plus(right_expr)
                     query_params.append(f"{left_expr}={right_expr}")
                 url += '?' + '&'.join(query_params)

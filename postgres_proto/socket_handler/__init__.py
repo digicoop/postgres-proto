@@ -1,10 +1,11 @@
+from functools import cached_property
 from .base import BasePostgresStreamRequestHandler
 from .prepared_stmts import PostgresPreparedStatementsRequestHandlerMixin
 from .builtins import QueryPostgresBuiltinsMixin
 from .info_schema import QueryInformationSchemaMixin
 from .helpers import format_select_results
 from ..flow import PostgresError
-from ..sql import parse_sql
+from ..sql import Parser
 
 
 def stmt_handler(name):
@@ -17,17 +18,21 @@ def stmt_handler(name):
 class PostgresRequestHandler(QueryInformationSchemaMixin, QueryPostgresBuiltinsMixin,
                              PostgresPreparedStatementsRequestHandlerMixin, BasePostgresStreamRequestHandler):
 
+    sql_parser_class = Parser
     ignore_missing_statement_types = ('SET', 'BEGIN', 'COMMIT', 'ROLLBACK', 'DEALLOCATE', 'DISCARD')
-    stmt_type_delimiters = None
 
-    def parse_sql(self, query):
+    @cached_property
+    def sql_parser(self):
+        return self.sql_parser_class()
+
+    def parse_query(self, query):
         try:
-            return parse_sql(query.rstrip('\x00').rstrip(';'), self.stmt_type_delimiters)
+            return self.sql_parser.parse(query.rstrip('\x00').rstrip(';'))
         except SyntaxError as e:
             raise PostgresError("Syntax error: %s" % e)
 
     def execute_query(self, query):
-        stmt_type, stmt_info = self.parse_sql(query)
+        stmt_type, stmt_info = self.parse_query(query)
 
         if self.is_postgres_builtins_query(stmt_type, stmt_info):
             return self.handle_postgres_builtins_query(stmt_type, stmt_info)

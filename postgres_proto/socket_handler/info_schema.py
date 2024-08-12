@@ -1,5 +1,5 @@
 from ..flow import PostgresError
-from ..sql import extract_value_from_where_comparison
+from ..sql.parser import extract_value_from_where_comparison
 from .helpers import format_select_results
 
 
@@ -38,7 +38,7 @@ class QueryInformationSchemaMixin(object):
     def handle_information_schema_columns_query(self, stmt_info):
         if not stmt_info.where:
             return [], []
-        table_name = extract_value_from_where_comparison(stmt_info.where, 'table_name')
+        table_name = extract_value_from_where_comparison(self.sql_parser.parse_where(stmt_info.where), 'table_name')
         if not table_name:
             return [], []
         rows = []

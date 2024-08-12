@@ -18,11 +18,11 @@ class QueryPostgresBuiltinsMixin(object):
         if stmt_type != 'SELECT':
             return False
         return self.is_postgres_builtins_function_query(stmt_info) or \
-            stmt_info.tables and {t.name for t in stmt_info.tables} <= set(self.pg_builtin_tables)
+            stmt_info.tables and {t.name.lower() for t in stmt_info.tables} <= set(self.pg_builtin_tables)
 
     def is_postgres_builtins_function_query(self, stmt_info):
         return not stmt_info.tables and not stmt_info.where and stmt_info.columns and \
-            {c.name for c in stmt_info.columns} <= set(self.pg_builtin_functions.keys()) 
+            {c.name.lower() for c in stmt_info.columns} <= set(self.pg_builtin_functions.keys()) 
 
     def handle_postgres_builtins_query(self, stmt_type, stmt_info):
         if stmt_type != 'SELECT':
