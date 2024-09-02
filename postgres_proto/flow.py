@@ -40,10 +40,12 @@ class PostgresError(Exception):
 
 
 @contextmanager
-def catch_all_as_postgres_error_context():
+def catch_all_as_postgres_error_context(logger=None):
     try:
         yield
     except Exception as e:
+        if logger:
+            logger.exception(e)
         if not isinstance(e, PostgresError):
             raise PostgresError(str(e))
         raise

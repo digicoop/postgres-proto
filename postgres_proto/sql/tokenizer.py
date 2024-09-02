@@ -36,7 +36,7 @@ def split_sql(sql, keywords):
 
 def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')'),), string_delimiters=('"', "'"),
              tokenize_nested=False, remove_quotes=False, split_delimiters_as_tokens=False, in_group=False,
-             remove_group_delimiters=False):
+             remove_group_delimiters=False, max_splits=None):
 
     group_delimiters = dict(group_delimiters)
     open_group_delimiters = tuple(group_delimiters.keys())
@@ -45,7 +45,8 @@ def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')
     tokens = []
     current = ''
     current_pos = 0
-    
+    splits_count = 0
+
     while True:
         delim, delim_pos = find_next_delimiter(sql, pos, delimiters)
         if delim is None:
@@ -82,6 +83,9 @@ def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')
                 if current.strip():
                     tokens.append((current.strip(), current_pos))
                 return tokens, delim_pos + len(delim)
+        elif splits_count == max_splits:
+            current += delim
+            pos = delim_pos + len(delim)
         else:
             if current.strip():
                 tokens.append((current.strip(), current_pos))
@@ -90,6 +94,7 @@ def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')
             pos = delim_pos + len(delim)
             current = ''
             current_pos = pos
+            splits_count += 1
     return tokens
 
 

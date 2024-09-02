@@ -1,6 +1,7 @@
 from .tokenizer import tokenize, split_sql, tokenize_list, unquote, minify_sql
 from dataclasses import dataclass
 import typing as t
+import re
 
 
 @dataclass
@@ -61,6 +62,8 @@ class Parser:
 
     def parse_identifier(self, sql, **kwargs):
         name, alias = self.split_alias(tokenize(sql, **kwargs))
+        if re.match("[a-z0-9_]+\(", name, re.I):
+            return name, None, alias
         path = [t[0] for t in tokenize_list(name, ".", remove_quotes=True)]
         if len(path) > 1:
             return path[1], path[0], alias
@@ -105,7 +108,7 @@ class Parser:
 
     def parse_condition(self, sql):
         tokens = [t[0] for t in tokenize(sql, split_delimiters=('=', '!=', '<>', '<', '>', '<=', '>=', '~', '!~', ' in ', ' not in ', ' like ', ' not like ', ' ilike ', ' not ilike '),
-                                         split_delimiters_as_tokens=True)]
+                                         split_delimiters_as_tokens=True, max_splits=1)]
         if len(tokens) != 3:
             raise SyntaxError(f"unhandled comparison: {sql}")
         return tokens
@@ -113,7 +116,7 @@ class Parser:
     def parse_sql_func(self, sql):
         parenth_start = sql.index('(')
         name = sql[:parenth_start]
-        args = tokenize(sql, parenth_start + 1, True, False)[0]
+        args = [t[0] for t in tokenize_list(sql[parenth_start+1:-1])]
         return name, args
 
     def split_alias(self, tokens):

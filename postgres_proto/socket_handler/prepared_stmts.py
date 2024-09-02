@@ -54,7 +54,7 @@ class PostgresPreparedStatementsRequestHandlerMixin(object):
         if name not in self.portals:
             raise PostgresError("unknown portal")
         results = self.execute_portal(name)
-        if results:
+        if results and results[2]:
             self.stream.send_row_description(results[2])
         else:
             self.stream.send_no_data()
