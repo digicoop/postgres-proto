@@ -31,6 +31,7 @@ class SelectInfo:
     tables: t.List[TableInfo]
     where: t.Optional[str] = None
     group_by: t.Optional[str] = None
+    window: t.Optional[str] = None
     order_by: t.Optional[str] = None
     distinct: t.Optional[bool] = False
     limit: t.Optional[str] = None
@@ -45,7 +46,7 @@ class Parser:
         return stmt_type, (getattr(self, method)(sql) if hasattr(self, method) else sql)
 
     def parse_select(self, sql):
-        parts = split_sql(sql, ('SELECT', 'DISTINCT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET'))
+        parts = split_sql(sql, ('SELECT', 'DISTINCT', 'FROM', 'WHERE', 'GROUP BY', 'WINDOW', 'ORDER BY', 'LIMIT', 'OFFSET'))
         if 'DISTINCT' in parts:
             parts['SELECT'] = parts.pop('DISTINCT')
             parts['DISTINCT'] = True
@@ -64,10 +65,13 @@ class Parser:
         name, alias = self.split_alias(tokenize(sql, **kwargs))
         if re.match("[a-z0-9_]+\(", name, re.I):
             return name, None, alias
-        path = [t[0] for t in tokenize_list(name, ".", remove_quotes=True)]
+        return (*self.parse_identifier_schema(name), alias)
+        
+    def parse_identifier_schema(self, sql):
+        path = [t[0] for t in tokenize_list(sql, ".", remove_quotes=True)]
         if len(path) > 1:
-            return path[1], path[0], alias
-        return path[0], None, alias
+            return path[1], path[0]
+        return path[0], None
 
     def parse_from(self, sql):
         for table_expr, _ in tokenize_list(sql):
@@ -83,7 +87,7 @@ class Parser:
             table, on = tokenize_list(join[0], " ON ")
             table = self.parse_from_table(table[0])
             current.join = JoinInfo(table, on[0])
-            current = current.join
+            current = table
         return source
     
     def parse_from_table(self, sql):
