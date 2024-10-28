@@ -11,7 +11,10 @@ class BasePostgresStreamRequestHandler(PostgresServerFlowMixin, socketserver.Str
             self.version, self.startup_params, self.user = self.perform_session_init()
             self.handle_session_ready()
             while True:
-                if not self.read_and_execute_command():
+                try:
+                    if not self.read_and_execute_command():
+                        break
+                except ConnectionResetError:
                     break
 
     def perform_ssl_handshake(self):

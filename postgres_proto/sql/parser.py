@@ -63,7 +63,7 @@ class Parser:
 
     def parse_identifier(self, sql, **kwargs):
         name, alias = self.split_alias(tokenize(sql, **kwargs))
-        if re.match("[a-z0-9_]+\(", name, re.I):
+        if re.match("[a-z0-9_]+\(", name, re.I) or name.startswith("'") or re.match(r"^\d+$", name) or name.lower().startswith("case "):
             return name, None, alias
         return (*self.parse_identifier_schema(name), alias)
         
@@ -124,7 +124,7 @@ class Parser:
         return name, args
 
     def split_alias(self, tokens):
-        if (len(tokens) > 2 and tokens[-1][0].upper() == "AS") or len(tokens) > 1:
+        if (len(tokens) > 2 and tokens[-2][0].upper() == "AS") or len(tokens) > 1:
             return tokens[0][0], unquote(tokens[-1][0])
         return tokens[0][0], None
 

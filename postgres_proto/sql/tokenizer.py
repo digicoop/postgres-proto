@@ -66,7 +66,7 @@ def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')
         elif delim in open_group_delimiters:
             if current.strip() or not tokenize_nested:
                 end_pos = find_next_unnested_delim(sql, delim_pos + len(delim), delim, group_delimiters[delim])
-                pos = end_pos + len(delim)
+                pos = end_pos + len(group_delimiters[delim])
                 current += sql[delim_pos+1:pos-1] if remove_group_delimiters else sql[delim_pos:pos]
             else:
                 # nested group

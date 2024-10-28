@@ -5,7 +5,7 @@ from .helpers import format_select_results
 class QueryPostgresBuiltinsMixin(object):
     """Implements the minimum to avoid triggering errors for clients querying these tables and functions on start
     """
-    pg_builtin_tables = {'pg_matviews', 'pg_type', 'pg_index', 'pg_attribute', 'pg_settings',
+    pg_builtin_tables = {'pg_matviews', 'pg_type', 'pg_index', 'pg_indexes', 'pg_attribute', 'pg_settings',
         'pg_database', 'pg_roles', 'pg_user', 'pg_enum', 'pg_class', 'pg_namespace'}
 
     pg_builtin_functions = {
