@@ -1,5 +1,3 @@
-from io import BytesIO
-import struct
 from contextlib import contextmanager
 from .sql.tokenizer import split_sql_queries
 
@@ -7,7 +5,7 @@ from .sql.tokenizer import split_sql_queries
 EXPECTED_PARAMETERS_STATUS = {
     # As defined here: https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-ASYNC
     # using postgres defaults
-    "server_version": "130000", # v13
+    "server_version": "130000",  # v13
     "server_encoding": "UTF8",
     "client_encoding": "UTF8",
     "is_superuser": "off",
@@ -16,14 +14,11 @@ EXPECTED_PARAMETERS_STATUS = {
     "IntervalStyle": "postgres",
     "TimeZone": "GMT",
     "integer_datetimes": "on",
-    "standard_conforming_strings": "on"
+    "standard_conforming_strings": "on",
 }
 
 
-ENCRYPTION_REQUESTS = {
-    80877104: 'GSSENCRequest',
-    80877103: 'SSLRequest'
-}
+ENCRYPTION_REQUESTS = {80877104: "GSSENCRequest", 80877103: "SSLRequest"}
 
 
 def is_encrypted_request(msglen, version):
@@ -55,11 +50,12 @@ def pgcommand(name):
     def decorator(func):
         func.__pgcommand__ = name
         return func
+
     return decorator
 
 
 class PostgresServerFlowMixin(object):
-    application_name = 'postgres-proto'
+    application_name = "postgres-proto"
 
     def perform_session_init(self):
         version, startup_params = self.perform_startup_flow()
@@ -72,12 +68,12 @@ class PostgresServerFlowMixin(object):
         msglen, version = self.stream.read_startup_message_header()
         encreq = is_encrypted_request(msglen, version)
 
-        if encreq == 'SSLRequest':
+        if encreq == "SSLRequest":
             self.perform_ssl_handshake()
-        elif encreq == 'GSSENCRequest':
+        elif encreq == "GSSENCRequest":
             self.perform_gssapi_handshake()
         elif self.must_use_encryption():
-            raise PostgresError('must use encryption', 'FATAL')
+            raise PostgresError("must use encryption", "FATAL")
 
         if encreq:
             msglen, version = self.stream.read_startup_message_header()
@@ -93,13 +89,15 @@ class PostgresServerFlowMixin(object):
         return False
 
     def perform_authentication_flow(self, startup_params):
-        if self.is_authentication_needed(startup_params['user'], startup_params.get('database')):
+        if self.is_authentication_needed(startup_params["user"], startup_params.get("database")):
             password = self.stream.send_authentication_request()
-            user = self.authenticate(startup_params['user'], password, startup_params.get('database'))
+            user = self.authenticate(
+                startup_params["user"], password, startup_params.get("database")
+            )
             if not user:
                 raise PostgresError("authentication failure", "FATAL", "28000")
         else:
-            user = startup_params['user']
+            user = startup_params["user"]
         self.stream.send_authentication_ok()
         return user
 
@@ -111,10 +109,14 @@ class PostgresServerFlowMixin(object):
 
     def send_parameters_status(self):
         self.stream.send_parameters_status(EXPECTED_PARAMETERS_STATUS)
-        self.stream.send_parameters_status({'application_name': self.application_name})
+        self.stream.send_parameters_status({"application_name": self.application_name})
 
     def get_supported_commands(self):
-        return {getattr(self, f).__pgcommand__: getattr(self, f) for f in dir(self) if hasattr(getattr(self, f), '__pgcommand__')}
+        return {
+            getattr(self, f).__pgcommand__: getattr(self, f)
+            for f in dir(self)
+            if hasattr(getattr(self, f), "__pgcommand__")
+        }
 
     def get_command_handler(self, code):
         return self.get_supported_commands().get(code)
@@ -123,19 +125,19 @@ class PostgresServerFlowMixin(object):
         with self.error_context():
             handler = self.get_command_handler(code)
             if not handler:
-                raise PostgresError('unsupported command')
+                raise PostgresError("unsupported command")
             handler()
 
     def read_and_execute_command(self):
         code = self.stream.read_command()
-        if not code or code == 'X': # no data or Terminate
+        if not code or code == "X":  # no data or Terminate
             return False
         self.execute_command(code)
         return True
 
-    @pgcommand('Q')
+    @pgcommand("Q")
     def perform_simple_query_flow(self):
-        queries = self.stream.read_query().rstrip('\x00').strip().rstrip(';')
+        queries = self.stream.read_query().rstrip("\x00").strip().rstrip(";")
         for query in split_sql_queries(queries):
             self.perform_query_flow(query)
         self.stream.send_ready_for_query()
@@ -157,14 +159,14 @@ class PostgresServerFlowMixin(object):
 
     def execute_query(self):
         """Must return a tuple as follow: (command_name, rows, columns)
-           Where:
-            - command_name is the SQL command that was executed (eg: "SELECT"), see https://www.postgresql.org/docs/current/protocol-message-formats.html#commandcomplete
-            - rows: a list where each item is a a tuple of the same length as the columns with the cell value
-            - columns: a list of column names or ColumnDef objects
+        Where:
+         - command_name is the SQL command that was executed (eg: "SELECT"), see https://www.postgresql.org/docs/current/protocol-message-formats.html#commandcomplete
+         - rows: a list where each item is a a tuple of the same length as the columns with the cell value
+         - columns: a list of column names or ColumnDef objects
         """
         raise NotImplementedError()
 
-    @pgcommand('P')
+    @pgcommand("P")
     def perform_prepared_statement_flow(self):
         self.create_prepared_statement(*self.stream.read_parse())
         self.stream.send_parse_complete()
@@ -172,7 +174,7 @@ class PostgresServerFlowMixin(object):
     def create_prepared_statement(self, name, query, param_types):
         raise NotImplementedError()
 
-    @pgcommand('B')
+    @pgcommand("B")
     def perform_bind_prepared_statement_flow(self):
         self.bind_prepared_statement(*self.stream.read_bind())
         self.stream.send_bind_complete()
@@ -180,14 +182,14 @@ class PostgresServerFlowMixin(object):
     def bind_prepared_statement(self, portal, stmt, param_formats, params, result_cols):
         raise NotImplementedError()
 
-    @pgcommand('E')
+    @pgcommand("E")
     def perform_execute_prepared_statement_flow(self):
         self.execute_prepared_statement(*self.stream.read_execute())
 
     def execute_prepared_statement(self, portal, max_rows):
         raise NotImplementedError()
 
-    @pgcommand('F')
+    @pgcommand("F")
     def perform_flush_prepared_statements_flow(self):
         self.stream.read_flush()
         with self.error_context():
@@ -196,7 +198,7 @@ class PostgresServerFlowMixin(object):
     def flush_prepared_statements(self):
         raise NotImplementedError()
 
-    @pgcommand('S')
+    @pgcommand("S")
     def perform_sync_flow(self):
         self.stream.read_sync()
         with self.error_context():
@@ -206,12 +208,12 @@ class PostgresServerFlowMixin(object):
     def sync_prepared_statement(self):
         raise NotImplementedError()
 
-    @pgcommand('D')
+    @pgcommand("D")
     def perform_describe_flow(self):
         describe_type, name = self.stream.read_describe()
-        if describe_type == b'P':
+        if describe_type == b"P":
             self.describe_portal(name)
-        elif describe_type == b'S':
+        elif describe_type == b"S":
             self.describe_prepared_statement(name)
         else:
             raise PostgresError("invalid type")
@@ -222,12 +224,12 @@ class PostgresServerFlowMixin(object):
     def describe_portal(self, name):
         raise NotImplementedError()
 
-    @pgcommand('C')
+    @pgcommand("C")
     def perform_close_flow(self):
         close_type, name = self.stream.read_close()
-        if close_type == b'P':
+        if close_type == b"P":
             self.close_portal(name)
-        elif close_type == b'S':
+        elif close_type == b"S":
             self.close_prepared_statement(name)
         else:
             raise PostgresError("invalid type")

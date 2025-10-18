@@ -1,1 +1,6 @@
 __pycache__
+/dist
+/.venv
+*.pyc
+.ruff_cache
+.pytest_cache

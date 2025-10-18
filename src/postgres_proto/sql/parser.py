@@ -41,32 +41,53 @@ class SelectInfo:
 class Parser:
     def parse(self, sql):
         sql = minify_sql(sql)
-        stmt_type = sql.split(' ', 1)[0].upper()
+        stmt_type = sql.split(" ", 1)[0].upper()
         method = f"parse_{stmt_type.replace(' ', '_').lower()}"
         return stmt_type, (getattr(self, method)(sql) if hasattr(self, method) else sql)
 
     def parse_select(self, sql):
-        parts = split_sql(sql, ('SELECT', 'DISTINCT', 'FROM', 'WHERE', 'GROUP BY', 'WINDOW', 'ORDER BY', 'LIMIT', 'OFFSET'))
-        if 'DISTINCT' in parts:
-            parts['SELECT'] = parts.pop('DISTINCT')
-            parts['DISTINCT'] = True
+        parts = split_sql(
+            sql,
+            (
+                "SELECT",
+                "DISTINCT",
+                "FROM",
+                "WHERE",
+                "GROUP BY",
+                "WINDOW",
+                "ORDER BY",
+                "LIMIT",
+                "OFFSET",
+            ),
+        )
+        if "DISTINCT" in parts:
+            parts["SELECT"] = parts.pop("DISTINCT")
+            parts["DISTINCT"] = True
         return SelectInfo(
-            columns=list(filter(bool, self.parse_select_cols(parts.pop('SELECT')))),
-            tables=list(self.parse_from(parts.pop('FROM'))) if 'FROM' in parts else [],
-            **{k.replace(' ', '_').lower(): v for k, v in parts.items()})
+            columns=list(filter(bool, self.parse_select_cols(parts.pop("SELECT")))),
+            tables=list(self.parse_from(parts.pop("FROM"))) if "FROM" in parts else [],
+            **{k.replace(" ", "_").lower(): v for k, v in parts.items()},
+        )
 
     def parse_select_cols(self, sql):
         for col_expr, _ in tokenize_list(sql):
             if not col_expr:
                 continue
-            yield SelectColumnInfo(*self.parse_identifier(col_expr, group_delimiters=(('(', ')'), ('CASE ', ' END'))))
+            yield SelectColumnInfo(
+                *self.parse_identifier(col_expr, group_delimiters=(("(", ")"), ("CASE ", " END")))
+            )
 
     def parse_identifier(self, sql, **kwargs):
         name, alias = self.split_alias(tokenize(sql, **kwargs))
-        if re.match("[a-z0-9_]+\(", name, re.I) or name.startswith("'") or re.match(r"^\d+$", name) or name.lower().startswith("case "):
+        if (
+            re.match("[a-z0-9_]+\(", name, re.I)
+            or name.startswith("'")
+            or re.match(r"^\d+$", name)
+            or name.lower().startswith("case ")
+        ):
             return name, None, alias
         return (*self.parse_identifier_schema(name), alias)
-        
+
     def parse_identifier_schema(self, sql):
         path = [t[0] for t in tokenize_list(sql, ".", remove_quotes=True)]
         if len(path) > 1:
@@ -89,18 +110,18 @@ class Parser:
             current.join = JoinInfo(table, on[0])
             current = table
         return source
-    
+
     def parse_from_table(self, sql):
         return TableInfo(*self.parse_identifier(sql))
-    
+
     def parse_where(self, sql):
         expr = self.parse_where_expr(sql)
         if not isinstance(expr, dict):
             return {"$and": [expr]}
         return expr
-    
+
     def parse_where_expr(self, sql):
-        if sql.startswith('(') and sql.endswith(')'):
+        if sql.startswith("(") and sql.endswith(")"):
             sql = sql[1:-1]
         ors = tokenize_list(sql, " OR ", remove_group_delimiters=True)
         if len(ors) > 1:
@@ -111,16 +132,39 @@ class Parser:
         return self.parse_condition(sql)
 
     def parse_condition(self, sql):
-        tokens = [t[0] for t in tokenize(sql, split_delimiters=('=', '!=', '<>', '<', '>', '<=', '>=', '~', '!~', ' in ', ' not in ', ' like ', ' not like ', ' ilike ', ' not ilike '),
-                                         split_delimiters_as_tokens=True, max_splits=1)]
+        tokens = [
+            t[0]
+            for t in tokenize(
+                sql,
+                split_delimiters=(
+                    "=",
+                    "!=",
+                    "<>",
+                    "<",
+                    ">",
+                    "<=",
+                    ">=",
+                    "~",
+                    "!~",
+                    " in ",
+                    " not in ",
+                    " like ",
+                    " not like ",
+                    " ilike ",
+                    " not ilike ",
+                ),
+                split_delimiters_as_tokens=True,
+                max_splits=1,
+            )
+        ]
         if len(tokens) != 3:
             raise SyntaxError(f"unhandled comparison: {sql}")
         return tokens
 
     def parse_sql_func(self, sql):
-        parenth_start = sql.index('(')
+        parenth_start = sql.index("(")
         name = sql[:parenth_start]
-        args = [t[0] for t in tokenize_list(sql[parenth_start+1:-1])]
+        args = [t[0] for t in tokenize_list(sql[parenth_start + 1 : -1])]
         return name, args
 
     def split_alias(self, tokens):

@@ -12,14 +12,18 @@ def stmt_handler(name):
     def decorator(func):
         func.__stmt_handler__ = name
         return func
+
     return decorator
 
 
-class PostgresRequestHandler(QueryInformationSchemaMixin, QueryPostgresBuiltinsMixin,
-                             PostgresPreparedStatementsRequestHandlerMixin, BasePostgresStreamRequestHandler):
-
+class PostgresRequestHandler(
+    QueryInformationSchemaMixin,
+    QueryPostgresBuiltinsMixin,
+    PostgresPreparedStatementsRequestHandlerMixin,
+    BasePostgresStreamRequestHandler,
+):
     sql_parser_class = Parser
-    ignore_missing_statement_types = ('SET', 'BEGIN', 'COMMIT', 'ROLLBACK', 'DEALLOCATE', 'DISCARD')
+    ignore_missing_statement_types = ("SET", "BEGIN", "COMMIT", "ROLLBACK", "DEALLOCATE", "DISCARD")
 
     @cached_property
     def sql_parser(self):
@@ -27,7 +31,7 @@ class PostgresRequestHandler(QueryInformationSchemaMixin, QueryPostgresBuiltinsM
 
     def parse_query(self, query):
         try:
-            return self.sql_parser.parse(query.rstrip('\x00').rstrip(';'))
+            return self.sql_parser.parse(query.rstrip("\x00").rstrip(";"))
         except SyntaxError as e:
             raise PostgresError("Syntax error: %s" % e)
 
@@ -44,18 +48,24 @@ class PostgresRequestHandler(QueryInformationSchemaMixin, QueryPostgresBuiltinsM
         if not handler:
             if stmt_type in self.ignore_missing_statement_types:
                 return stmt_type, None, None
-            raise PostgresError('statement type not supported')
+            raise PostgresError("statement type not supported")
         rows, cols = handler(stmt_info)
         return stmt_type, rows, cols
 
     def get_stmt_handler(self, stmt_type):
-        handlers = {getattr(self, f).__stmt_handler__: getattr(self, f) for f in dir(self) if hasattr(getattr(self, f), '__stmt_handler__')}
+        handlers = {
+            getattr(self, f).__stmt_handler__: getattr(self, f)
+            for f in dir(self)
+            if hasattr(getattr(self, f), "__stmt_handler__")
+        }
         return handlers.get(stmt_type)
 
-    @stmt_handler('SELECT')
+    @stmt_handler("SELECT")
     def handle_select(self, stmt_info):
-        if '*' in [c.name for c in stmt_info.columns] and (len(stmt_info.columns) > 1 or stmt_info.columns[0].alias):
-            raise PostgresError('select * cannot be aliased or used with other columns')
+        if "*" in [c.name for c in stmt_info.columns] and (
+            len(stmt_info.columns) > 1 or stmt_info.columns[0].alias
+        ):
+            raise PostgresError("select * cannot be aliased or used with other columns")
 
         data, cols = self.query_tables(stmt_info)
         return format_select_results(data, cols, stmt_info)

@@ -13,9 +13,9 @@ class ThreadingTCPServer(socketserver.ThreadingTCPServer):
 
     def finish_request(self, request, client_address):
         self.nb_connected_clients += 1
-        max_connected_clients = getattr(self, 'max_connected_clients', None)
+        max_connected_clients = getattr(self, "max_connected_clients", None)
         if max_connected_clients is not None and self.nb_connected_clients > max_connected_clients:
-            raise Exception('max number of clients reached')
+            raise Exception("max number of clients reached")
         return super().finish_request(request, client_address)
 
     def close_request(self, request):
@@ -28,14 +28,22 @@ def create_ssl_context(certfile, keyfile):
     return context
 
 
-def create_server(request_handler, port, listen_addr='0.0.0.0', ssl_context=None, max_clients=None):
+def create_server(request_handler, port, listen_addr="0.0.0.0", ssl_context=None, max_clients=None):
     server = ThreadingTCPServer((listen_addr, port), request_handler)
     server.ssl_context = ssl_context
     server.max_connected_clients = max_clients
     return server
 
 
-def start_server(request_handler, port, listen_addr='0.0.0.0', ssl_cert=None, ssl_key=None, max_clients=None, **server_properties):
+def start_server(
+    request_handler,
+    port,
+    listen_addr="0.0.0.0",
+    ssl_cert=None,
+    ssl_key=None,
+    max_clients=None,
+    **server_properties,
+):
     ssl_context = create_ssl_context(ssl_cert, ssl_key) if ssl_cert and ssl_key else None
     server = create_server(request_handler, port, listen_addr, ssl_context, max_clients)
     for prop, value in server_properties.items():
@@ -45,16 +53,16 @@ def start_server(request_handler, port, listen_addr='0.0.0.0', ssl_cert=None, ss
         print("SSL is enabled")
     try:
         server.serve_forever()
-    except:
+    except Exception:
         server.shutdown()
 
 
 cli_arg_parser = argparse.ArgumentParser()
-cli_arg_parser.add_argument('--listen-addr', default='127.0.0.1')
-cli_arg_parser.add_argument('--port', type=int, default=55432)
-cli_arg_parser.add_argument('--ssl-cert')
-cli_arg_parser.add_argument('--ssl-key')
-cli_arg_parser.add_argument('--max-clients', type=int, default=100)
+cli_arg_parser.add_argument("--listen-addr", default="127.0.0.1")
+cli_arg_parser.add_argument("--port", type=int, default=55432)
+cli_arg_parser.add_argument("--ssl-cert")
+cli_arg_parser.add_argument("--ssl-key")
+cli_arg_parser.add_argument("--max-clients", type=int, default=100)
 
 
 class RequestHandlerArgAction(argparse.Action):
@@ -62,6 +70,6 @@ class RequestHandlerArgAction(argparse.Action):
         setattr(namespace, self.dest, [import_module(v) for v in values])
 
 
-if __name__ == '__main__':
-    cli_arg_parser.add_argument('request_handler', action=RequestHandlerArgAction)
+if __name__ == "__main__":
+    cli_arg_parser.add_argument("request_handler", action=RequestHandlerArgAction)
     start_server(**vars(cli_arg_parser.parse_args()))

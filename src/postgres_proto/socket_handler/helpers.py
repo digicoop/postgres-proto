@@ -2,13 +2,13 @@ from ..stream import ColumnDef
 
 
 def filter_selected_cols(cols, select_cols):
-    if select_cols[0] == '*':
+    if select_cols[0] == "*":
         return cols, cols
-    return [col.lower().split('.', 1)[-1] for col in select_cols], select_cols
+    return [col.lower().split(".", 1)[-1] for col in select_cols], select_cols
 
 
 def format_rows(data, cols):
-    return [list([item.get(c, '') for c in cols]) for item in data]
+    return [list([item.get(c, "") for c in cols]) for item in data]
 
 
 def format_result_cols(cols, cols_aliases=None):

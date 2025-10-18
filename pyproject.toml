@@ -1,21 +1,27 @@
-[tool.poetry]
+[project]
 name = "postgres-proto"
 version = "0.1.0"
 description = "Easily implement the PostgreSQL protocol in Python"
-authors = ["Digicoop <contact@digicoop.io>"]
+authors = [
+    {"name" = "Maxime Bouroumeau-Fuseau", email = "maxime.bouroumeau@gmail.com"}
+]
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/digicoop/postgres-proto"
-packages = [{include = "postgres_proto"}]
+requires-python = ">=3.10"
 
-[tool.poetry.dependencies]
-python = "^3.10"
+[project.urls]
+Repository = "https://github.com/sqlify/postgres-proto"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-pytest-cov = "^4.1.0"
-ruff = "^0.4.3"
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.4",
+]
+
+[tool.ruff]
+line-length = 100
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.8.11,<0.9.0"]
+build-backend = "uv_build"

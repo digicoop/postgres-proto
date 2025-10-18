@@ -4,15 +4,15 @@ from ..flow import PostgresError
 class PostgresPreparedStatementsRequestHandlerMixin(object):
     @property
     def prepared_statements(self):
-        return self.__dict__.setdefault('_prepared_statements', {})
+        return self.__dict__.setdefault("_prepared_statements", {})
 
     @property
     def portals(self):
-        return self.__dict__.setdefault('_portals', {})
+        return self.__dict__.setdefault("_portals", {})
 
     @property
     def portal_results(self):
-        return self.__dict__.setdefault('_portal_results', {})
+        return self.__dict__.setdefault("_portal_results", {})
 
     def create_prepared_statement(self, name, query, param_types):
         self.prepared_statements[name] = (query, param_types)
@@ -37,10 +37,10 @@ class PostgresPreparedStatementsRequestHandlerMixin(object):
             return self.portal_results[portal]
         query = self.prepared_statements[self.portals[portal][0]][0]
         for i, value in enumerate(self.portals[portal][2]):
-            query = query.replace('$%s' % (i+1), value.decode())
+            query = query.replace("$%s" % (i + 1), value.decode())
         try:
             self.portal_results[portal] = self.execute_query(query) if query else None
-        except PostgresError as e:
+        except PostgresError:
             self.portal_results[portal] = None
         return self.portal_results[portal]
 

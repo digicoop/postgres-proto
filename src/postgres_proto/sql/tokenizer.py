@@ -2,8 +2,8 @@ import re
 
 
 def minify_sql(sql):
-    sql = re.sub("^--.*$", '', sql, flags=re.MULTILINE)
-    sql = re.sub("/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/", '', sql)
+    sql = re.sub("^--.*$", "", sql, flags=re.MULTILINE)
+    sql = re.sub("/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/", "", sql)
     return sql.replace("\n", " ").replace("\r", " ").strip()
 
 
@@ -34,16 +34,27 @@ def split_sql(sql, keywords):
     return parts
 
 
-def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')'),), string_delimiters=('"', "'"),
-             tokenize_nested=False, remove_quotes=False, split_delimiters_as_tokens=False, in_group=False,
-             remove_group_delimiters=False, max_splits=None):
-
+def tokenize(
+    sql,
+    pos=0,
+    split_delimiters=(",", " "),
+    group_delimiters=(("(", ")"),),
+    string_delimiters=('"', "'"),
+    tokenize_nested=False,
+    remove_quotes=False,
+    split_delimiters_as_tokens=False,
+    in_group=False,
+    remove_group_delimiters=False,
+    max_splits=None,
+):
     group_delimiters = dict(group_delimiters)
     open_group_delimiters = tuple(group_delimiters.keys())
     close_group_delimiters = tuple(group_delimiters.values())
-    delimiters = string_delimiters + open_group_delimiters + close_group_delimiters + split_delimiters
+    delimiters = (
+        string_delimiters + open_group_delimiters + close_group_delimiters + split_delimiters
+    )
     tokens = []
-    current = ''
+    current = ""
     current_pos = 0
     splits_count = 0
 
@@ -51,29 +62,42 @@ def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')
         delim, delim_pos = find_next_delimiter(sql, pos, delimiters)
         if delim is None:
             if in_group:
-                raise SyntaxError('expecting closing group, end of string reached')
+                raise SyntaxError("expecting closing group, end of string reached")
             current += sql[pos:]
             if current.strip():
                 tokens.append((current.strip(), current_pos))
             break
         current += sql[pos:delim_pos]
         if delim in string_delimiters:
-            end_pos = sql.find(delim, delim_pos+1)
+            end_pos = sql.find(delim, delim_pos + 1)
             if end_pos == -1:
-                raise SyntaxError('expecting closing quote, none found')
+                raise SyntaxError("expecting closing quote, none found")
             pos = end_pos + 1
-            current += sql[delim_pos+1:end_pos] if remove_quotes else sql[delim_pos:pos]
+            current += sql[delim_pos + 1 : end_pos] if remove_quotes else sql[delim_pos:pos]
         elif delim in open_group_delimiters:
             if current.strip() or not tokenize_nested:
-                end_pos = find_next_unnested_delim(sql, delim_pos + len(delim), delim, group_delimiters[delim])
+                end_pos = find_next_unnested_delim(
+                    sql, delim_pos + len(delim), delim, group_delimiters[delim]
+                )
                 pos = end_pos + len(group_delimiters[delim])
-                current += sql[delim_pos+1:pos-1] if remove_group_delimiters else sql[delim_pos:pos]
+                current += (
+                    sql[delim_pos + 1 : pos - 1] if remove_group_delimiters else sql[delim_pos:pos]
+                )
             else:
                 # nested group
-                group, pos = tokenize(sql, delim_pos + len(delim), split_delimiters, group_delimiters,
-                    string_delimiters, True, remove_quotes, split_delimiters_as_tokens, in_group=group_delimiters[delim])
+                group, pos = tokenize(
+                    sql,
+                    delim_pos + len(delim),
+                    split_delimiters,
+                    group_delimiters,
+                    string_delimiters,
+                    True,
+                    remove_quotes,
+                    split_delimiters_as_tokens,
+                    in_group=group_delimiters[delim],
+                )
                 tokens.append(group)
-                current = ''
+                current = ""
                 current_pos = pos
         elif delim in close_group_delimiters:
             if not in_group or delim != in_group:
@@ -92,7 +116,7 @@ def tokenize(sql, pos=0, split_delimiters=(',', ' '), group_delimiters=(('(', ')
             if split_delimiters_as_tokens:
                 tokens.append((delim.strip(), delim_pos))
             pos = delim_pos + len(delim)
-            current = ''
+            current = ""
             current_pos = pos
             splits_count += 1
     return tokens
@@ -107,8 +131,8 @@ def search_next_token(tokens, search, from_idx=0):
     while i < len(tokens):
         token, pos = tokens[i]
         for lookup in search:
-            if lookup == ' '.join([t[0] for t in tokens[i:i+1+lookup.count(' ')]]).upper():
-                return lookup, pos, i+1
+            if lookup == " ".join([t[0] for t in tokens[i : i + 1 + lookup.count(" ")]]).upper():
+                return lookup, pos, i + 1
         i += 1
     return None, None, i
 
@@ -131,9 +155,13 @@ def find_next_unnested_delim(string, pos, open_delim, close_delim):
     if next_open_delim >= 0 and next_open_delim < next_close_delim:
         return find_next_unnested_delim(
             string,
-            find_next_unnested_delim(string, next_open_delim + len(open_delim), open_delim, close_delim) + len(close_delim),
+            find_next_unnested_delim(
+                string, next_open_delim + len(open_delim), open_delim, close_delim
+            )
+            + len(close_delim),
             open_delim,
-            close_delim)
+            close_delim,
+        )
     elif next_close_delim == -1:
         raise SyntaxError(f"missing closing delimiter '{close_delim}'")
     return next_close_delim
