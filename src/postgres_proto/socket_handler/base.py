@@ -1,4 +1,4 @@
-from socket import socket
+import socket
 import socketserver
 from ..stream import PostgresStream
 from ..flow import PostgresServerFlowMixin, PostgresError
