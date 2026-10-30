@@ -1,3 +1,4 @@
+from socket import socket
 import socketserver
 from ..stream import PostgresStream
 from ..flow import PostgresServerFlowMixin, PostgresError
@@ -5,6 +6,7 @@ from ..flow import PostgresServerFlowMixin, PostgresError
 
 class BasePostgresStreamRequestHandler(PostgresServerFlowMixin, socketserver.StreamRequestHandler):
     def handle(self):
+        self.request.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
         self.stream = PostgresStream(self.rfile, self.wfile)
         with self.error_context():
             self.version, self.startup_params, self.user = self.perform_session_init()
