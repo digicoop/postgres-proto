@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from .sql.tokenizer import split_sql_queries
+import sqlparse
 
 
 EXPECTED_PARAMETERS_STATUS = {
@@ -54,7 +54,7 @@ def pgcommand(name):
     return decorator
 
 
-class PostgresServerFlowMixin(object):
+class PostgresServerFlowMixin:
     application_name = "postgres-proto"
 
     def perform_session_init(self):
@@ -138,7 +138,7 @@ class PostgresServerFlowMixin(object):
     @pgcommand("Q")
     def perform_simple_query_flow(self):
         queries = self.stream.read_query().rstrip("\x00").strip().rstrip(";")
-        for query in split_sql_queries(queries):
+        for query in filter(None, sqlparse.split(queries, strip_semicolon=True)):
             self.perform_query_flow(query)
         self.stream.send_ready_for_query()
 

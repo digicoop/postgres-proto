@@ -16,7 +16,7 @@ class ColumnDef:
             self.type_size = type_size
 
 
-class PostgresBuffer(object):
+class PostgresBuffer:
     """Utilities to write on the stream"""
 
     def __init__(self, stream=None):
@@ -80,7 +80,7 @@ class PostgresBuffer(object):
         self.write_response(code, buf)
 
 
-class PostgresStream(object):
+class PostgresStream:
     """
     Implements reading and writing commands over file objects
     Message formats: https://www.postgresql.org/docs/current/protocol-message-formats.html

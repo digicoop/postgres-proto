@@ -8,6 +8,9 @@ authors = [
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
+dependencies = [
+    "sqlparse>=0.6.0",
+]
 
 [project.urls]
 Repository = "https://github.com/sqlify/postgres-proto"

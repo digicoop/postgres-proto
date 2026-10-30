@@ -4,7 +4,7 @@ Utilities to implement a socket server that speaks the PostgreSQL protocol.
 
 Add support for the PostgreSQL protocol to your app and instantly add compatibility with hundreds of existing apps (eg: business intelligence tools, reporting tools, no-code app makers, etc...)
 
-Includes a simple and forgiving SQL parser to implement custom SQL statements.
+Includes a simple and forgiving SQL parser (built on [sqlparse](https://pypi.org/project/sqlparse/)) to implement custom SQL statements.
 
 Features:
 
