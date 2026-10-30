@@ -1,6 +1,6 @@
 [project]
 name = "postgres-proto"
-version = "0.2.1"
+version = "0.2.2"
 description = "Easily implement the PostgreSQL protocol in Python"
 authors = [
     {"name" = "Maxime Bouroumeau-Fuseau", email = "maxime.bouroumeau@gmail.com"}
