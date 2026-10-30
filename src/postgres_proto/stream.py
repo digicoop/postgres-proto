@@ -163,7 +163,7 @@ class PostgresStream:
             paramlen = data.read_int32()
             if paramlen == -1:
                 params.append(None)
-            if paramlen:
+            else:
                 params.append(data.read(paramlen))
         result_cols = [data.read_int16() for i in range(data.read_int16())]
         return portal, stmt, param_formats, params, result_cols

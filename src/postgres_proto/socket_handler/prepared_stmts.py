@@ -36,8 +36,9 @@ class PostgresPreparedStatementsRequestHandlerMixin(object):
         if portal in self.portal_results:
             return self.portal_results[portal]
         query = self.prepared_statements[self.portals[portal][0]][0]
-        for i, value in enumerate(self.portals[portal][2]):
-            query = query.replace("$%s" % (i + 1), value.decode())
+        # replace from the highest index so that $1 does not match the start of $10
+        for i, value in reversed(list(enumerate(self.portals[portal][2]))):
+            query = query.replace("$%s" % (i + 1), "NULL" if value is None else value.decode())
         try:
             self.portal_results[portal] = self.execute_query(query) if query else None
         except PostgresError:
